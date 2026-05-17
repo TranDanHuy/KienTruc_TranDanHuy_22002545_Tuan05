@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_network
+    restart: always
+
+  flask1:
+    image: python:3.9-slim
+    container_name: flask_service1
+    volumes:
+      - ./flask_app:/app
+    working_dir: /app
+    command: bash -c "pip install flask && python app.py"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flask1.rule=Host(`flask1.localhost`)"
+      - "traefik.http.services.flask1.loadbalancer.server.port=5000"
+    networks:
+      - traefik_network
+    restart: always
+
+  flask2:
+    image: python:3.9-slim
+    container_name: flask_service2
+    volumes:
+      - ./flask_app:/app
+    working_dir: /app
+    command: bash -c "pip install flask && python app.py"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flask2.rule=Host(`flask2.localhost`)"
+      - "traefik.http.services.flask2.loadbalancer.server.port=5000"
+    networks:
+      - traefik_network
+    restart: always
+
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress_service
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress123
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wordpress.rule=Host(`wordpress.localhost`)"
+      - "traefik.http.services.wordpress.loadbalancer.server.port=80"
+    depends_on:
+      - mysql
+    networks:
+      - traefik_network
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_wordpress_traefik
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - traefik_network
+    restart: always
+
+volumes:
+  mysql_data:
+
+networks:
+  traefik_network:
+    driver: bridge

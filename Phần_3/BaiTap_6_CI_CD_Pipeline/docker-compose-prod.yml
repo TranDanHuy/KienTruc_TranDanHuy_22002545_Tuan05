@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    container_name: app_prod
+    ports:
+      - "80:80"
+    networks:
+      - prod_network
+    restart: always
+
+networks:
+  prod_network:
+    driver: bridge

@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis_celery
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - django_network
+    restart: always
+
+  django:
+    build: .
+    container_name: django_app
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "False"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    networks:
+      - django_network
+    restart: always
+
+  celery-worker:
+    build: .
+    container_name: celery_worker
+    command: celery -A django_project worker -l info
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - django
+    networks:
+      - django_network
+    restart: always
+
+  celery-beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A django_project beat -l info
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - django
+    networks:
+      - django_network
+    restart: always
+
+volumes:
+  redis_data:
+
+networks:
+  django_network:
+    driver: bridge

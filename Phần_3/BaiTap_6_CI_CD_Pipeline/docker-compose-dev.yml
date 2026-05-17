@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  app-dev:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app_dev
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    networks:
+      - ci_network
+    restart: always
+
+  tests:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: tests_runner
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    working_dir: /app
+    entrypoint: npm run test
+    depends_on:
+      - app-dev
+    networks:
+      - ci_network
+    restart: on-failure
+
+  nginx-prod:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    container_name: nginx_prod
+    ports:
+      - "80:80"
+    networks:
+      - ci_network
+    restart: always
+
+networks:
+  ci_network:
+    driver: bridge

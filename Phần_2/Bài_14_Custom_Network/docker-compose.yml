@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app1:
+    image: busybox
+    container_name: app1_container
+    command: sh -c "while true; do echo 'App1 running'; sleep 10; done"
+    networks:
+      - custom_network
+    restart: always
+
+  app2:
+    image: busybox
+    container_name: app2_container
+    command: sh -c "while true; do echo 'App2 running'; sleep 10; done"
+    networks:
+      - custom_network
+    restart: always
+
+networks:
+  custom_network:
+    driver: bridge
